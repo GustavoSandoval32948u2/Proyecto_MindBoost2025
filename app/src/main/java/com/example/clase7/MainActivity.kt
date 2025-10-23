@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.clase7.models.User
 import com.example.clase7.notifications.NotificationUtils
 import com.example.clase7.screens.DailyLogScreen
 import com.google.firebase.auth.FirebaseAuth
@@ -127,15 +128,38 @@ fun MainScreens() {
     val context = LocalContext.current
     var startDestination by remember { mutableStateOf<String?>(null) }
     val skipDailyRedirect = remember { mutableStateOf(false) }
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // --- Cargar user actual desde Firebase ---
+    var currentUser by remember { mutableStateOf<User?>(null) }
+    LaunchedEffect(userId) {
+        userId?.let { uid ->
+            try {
+                val doc = db.collection("users").document(uid).get().await()
+                if (doc.exists()) {
+                    currentUser = User(
+                        name = doc.getString("name") ?: "",
+                        age = doc.getLong("age")?.toInt() ?: 0,
+                        gender = doc.getString("gender") ?: "",
+                        habits = doc.get("habits") as? Map<String, Any> ?: emptyMap(),
+                        streakCount = doc.getLong("streakCount")?.toInt() ?: 0,
+                        lastDailyDate = doc.getString("lastDailyDate") ?: ""
+                    )
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error al cargar usuario: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     // --- Determinar pantalla inicial ---
     LaunchedEffect(Unit) {
         startDestination = try {
-            val currentUser = auth.currentUser
-            if (currentUser == null) "login"
+            val currentFirebaseUser = auth.currentUser
+            if (currentFirebaseUser == null) "login"
             else {
-                currentUser.reload().await()
-                val doc = db.collection("users").document(currentUser.uid).get().await()
+                currentFirebaseUser.reload().await()
+                val doc = db.collection("users").document(currentFirebaseUser.uid).get().await()
                 if (doc.exists()) "dailylog" else "createprofile"
             }
         } catch (e: Exception) {
@@ -167,23 +191,25 @@ fun MainScreens() {
             composable("home") { HomeScreen(navController, skipDailyRedirect) }
             composable("profile") { ProfileScreen(navController) }
             composable("createhabit") {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                CreateHabitScreen(navController = navController, userId = uid)
-            }
-            composable("stats") { StatsScreen(navController) }
-            composable("recommendations") { RecommendationsScreen(navController) }
-            composable("medals") {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                MedalsScreen(navController = navController, userId = uid)
-            }
-            composable("dailylog") {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                DailyLogScreen(
-                    navController = navController,
-                    userId = uid
-                )
+                CreateHabitScreen(navController = navController, userId = userId)
             }
 
+            // 🔹 StatsScreen con currentUser
+            composable("stats") {
+                currentUser?.let { user ->
+                    StatsScreen(navController = navController, user = user)
+                }
+            }
+
+            composable("recommendations") {
+                RecommendationsScreen(navController = navController, userId = userId)
+            }
+            composable("medals") {
+                MedalsScreen(navController = navController, userId = userId)
+            }
+            composable("dailylog") {
+                DailyLogScreen(navController = navController, userId = userId)
+            }
         }
     }
 }

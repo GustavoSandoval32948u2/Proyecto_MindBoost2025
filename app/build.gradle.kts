@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0" // <<-- Agregar esto
 }
 
 android {
@@ -75,6 +76,11 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
 
     implementation("androidx.core:core-ktx:1.13.1")
+
+    implementation("io.ktor:ktor-client-core:2.3.5")
+    implementation("io.ktor:ktor-client-cio:2.3.5")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.5")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.5")
 
 
     // Import the BoM for the Firebase platform

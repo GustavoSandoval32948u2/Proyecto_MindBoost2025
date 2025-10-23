@@ -3,7 +3,6 @@ package com.example.clase7.screens
 import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,14 +22,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.clase7.R
 import com.example.clase7.AchievementManager
@@ -66,19 +62,18 @@ fun DailyLogScreen(
     var showSavedToast by remember { mutableStateOf(false) }
     var showErrorToast by remember { mutableStateOf(false) }
     var showSuccessAnimation by remember { mutableStateOf(false) }
-
-    var showDaily by remember { mutableStateOf(true) } // Controla si se muestra el Daily
+    val userProfileHabits = remember { mutableStateListOf<String>() }
+    var showDaily by remember { mutableStateOf(true) }
 
     val toastSaved = stringResource(R.string.dailylog_toast_saved)
     val toastError = stringResource(R.string.dailylog_toast_error)
 
-    // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
     val scale by animateFloatAsState(targetValue = if (isVisible) 1f else 0.8f, animationSpec = tween(600))
     val alpha by animateFloatAsState(targetValue = if (isVisible) 1f else 0f, animationSpec = tween(800))
 
-    // ---------------- Inicializar AchievementManager ----------------
+    // AchievementManager
     LaunchedEffect(userId) {
         if (userId != null) {
             AchievementManager.initialize(
@@ -103,30 +98,33 @@ fun DailyLogScreen(
         }
     }
 
+    // Cargar hábitos
     LaunchedEffect(userId) {
         if (userId != null) {
             try {
-                val todayDoc = db.collection("users")
-                    .document(userId)
-                    .collection("habitLogs")
-                    .document(today)
-                    .get().await()
+                val todayDoc = db.collection("users").document(userId)
+                    .collection("habitLogs").document(today).get().await()
 
                 if (todayDoc.exists()) {
-                    // Si ya hay registro del día, navegar directo a home
                     navController.navigate("home") {
                         popUpTo("dailylog") { inclusive = true }
                         launchSingleTop = true
                     }
                 } else {
-                    // Cargar hábitos solo si no hay registro del día
                     val userDoc = db.collection("users").document(userId).get().await()
                     if (userDoc.exists()) {
-                        val habitsMap = userDoc.get("habits") as? Map<String, String> ?: emptyMap()
-                        habits = habitsMap.keys.toList()
-                        habitsMap.forEach { (habit, duration) ->
-                            durations[habit] = duration
+                        val habitsMapRaw = userDoc.get("habits") as? Map<String, Map<String, Any?>> ?: emptyMap()
+                        val allHabitsFromFirebase = habitsMapRaw.keys.toList()
+
+                        userProfileHabits.clear()
+                        userProfileHabits.addAll(allHabitsFromFirebase)
+
+                        habits = allHabitsFromFirebase.distinct()
+
+                        allHabitsFromFirebase.forEach { habit ->
                             checked[habit] = false
+                            val duration = habitsMapRaw[habit]?.get("second")?.toString() ?: "0"
+                            durations[habit] = duration
                         }
                     }
                 }
@@ -140,7 +138,6 @@ fun DailyLogScreen(
         }
     }
 
-    // ---------------- Mientras verifica Firestore ----------------
     if (loading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MindBoostPrimary)
@@ -148,16 +145,11 @@ fun DailyLogScreen(
         return
     }
 
-    // ---------------- UI Daily ----------------
     if (showDaily) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(MindBoostBackground, Color(0xFFE3EEFA))
-                    )
-                )
+                .background(Brush.verticalGradient(colors = listOf(MindBoostBackground, Color(0xFFE3EEFA))))
         ) {
             val scrollState = rememberScrollState()
             Column(
@@ -171,7 +163,7 @@ fun DailyLogScreen(
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Encabezado con fecha
+                // Fecha
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -179,9 +171,7 @@ fun DailyLogScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -199,18 +189,19 @@ fun DailyLogScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // ---------------- HÁBITOS ----------------
                 Text(text = stringResource(R.string.dailylog_myhabits), style = MaterialTheme.typography.titleLarge, color = MindBoostText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
 
                 habits.forEach { habit ->
+                    var localDuration by remember { mutableStateOf("") } // estado local para el TextField
+
                     HabitCard(
                         habit = habit,
                         isChecked = checked[habit] ?: false,
-                        duration = durations[habit] ?: "",
+                        duration = localDuration,
                         onCheckedChange = { checked[habit] = it },
-                        onDurationChange = { durations[habit] = it }
+                        onDurationChange = { localDuration = it },
+                        unit = if (habit == "Sleep" ) "horas" else "minutos"
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -249,21 +240,24 @@ fun DailyLogScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ---------------- BOTONES ----------------
+                // BOTONES
                 Column(modifier = Modifier.fillMaxWidth()) {
-
-                    // BOTÓN GUARDAR
+                    // Guardar
                     Button(
                         onClick = {
                             if (checked.values.none { it }) { showErrorToast = true; return@Button }
                             userId?.let { uid ->
                                 coroutineScope.launch {
                                     try {
-                                        // 1️⃣ Guardar datos del Daily Log
                                         val dataToSave = mutableMapOf<String, Any>()
                                         checked.forEach { (habit, done) ->
                                             dataToSave[habit] = done
-                                            dataToSave["${habit}_duration"] = durations[habit]?.toLongOrNull() ?: 0L
+                                            val enteredDuration = durations[habit]?.toLongOrNull() ?: 0L
+                                            val durationInSeconds = when (habit) {
+                                                "Sleep" -> enteredDuration * 3600      // Convertir horas a segundos
+                                                else -> enteredDuration * 60           // Convertir minutos a segundos
+                                            }
+                                            dataToSave["${habit}_duration"] = durationInSeconds
                                         }
                                         dataToSave["notes"] = notes
                                         dataToSave["timestamp"] = FieldValue.serverTimestamp()
@@ -274,13 +268,11 @@ fun DailyLogScreen(
                                             .set(dataToSave)
                                             .await()
 
-                                        // 2️⃣ Obtener datos del usuario y calcular nueva racha
                                         val doc = db.collection("users").document(uid).get().await()
                                         val currentStreak = doc.getLong("streakCount") ?: 0L
                                         val lastDate = doc.getString("lastDailyDate") ?: ""
                                         val newStreak = if (lastDate == today) currentStreak else currentStreak + 1
 
-                                        // 3️⃣ Actualizar streak y lastDailyDate
                                         db.collection("users").document(uid)
                                             .update(
                                                 mapOf(
@@ -289,11 +281,9 @@ fun DailyLogScreen(
                                                 )
                                             ).await()
 
-                                        // 4️⃣ Checkear logros
                                         AchievementManager.checkAchievements(streakDays = newStreak.toInt())
                                         delay(200)
 
-                                        // --- NAVEGACIÓN Y TOAST ---
                                         showSuccessAnimation = true
                                         showDaily = false
                                         delay(1500)
@@ -311,33 +301,22 @@ fun DailyLogScreen(
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.dailylog_btn_save),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(text = stringResource(R.string.dailylog_btn_save), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // BOTÓN OMITIR
+                    // Omitir
                     Button(
                         onClick = {
                             userId?.let { uid ->
                                 coroutineScope.launch {
                                     try {
-                                        val userRef = db.collection("users").document(uid)
-
-                                        userRef.update(
-                                            mapOf(
-                                                "streakCount" to 0,
-                                                "lastDailyDate" to today
-                                            )
-                                        ).await()
-
+                                        db.collection("users").document(uid)
+                                            .update(mapOf("streakCount" to 0, "lastDailyDate" to today))
+                                            .await()
                                         showSavedToast = true
                                         showDaily = false
-
                                         delay(300)
                                         navController.navigate("home") {
                                             popUpTo("dailylog") { inclusive = true }
@@ -349,29 +328,24 @@ fun DailyLogScreen(
                                 }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB0B0B0),
-                            contentColor = MindBoostText
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB0B0B0), contentColor = MindBoostText),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Text(text = stringResource(R.string.dailylog_btn_skip), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
 
-                    // Motivación
                     Text(
                         text = stringResource(R.string.dailylog_motivation),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MindBoostText.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        fontStyle = FontStyle.Italic,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Toasts
                     if (showSavedToast) {
                         LaunchedEffect(showSavedToast) {
                             Toast.makeText(context, toastSaved, Toast.LENGTH_SHORT).show()
@@ -391,7 +365,6 @@ fun DailyLogScreen(
                         }
                     }
 
-                    // Achievement
                     AchievementManager.lastUnlockedAchievement?.let { ach ->
                         AlertDialog(
                             onDismissRequest = { AchievementManager.clearLastUnlocked() },
@@ -406,10 +379,7 @@ fun DailyLogScreen(
                                 }
                             },
                             confirmButton = {
-                                Button(
-                                    onClick = { AchievementManager.clearLastUnlocked() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MindBoostPrimary)
-                                ) {
+                                Button(onClick = { AchievementManager.clearLastUnlocked() }, colors = ButtonDefaults.buttonColors(containerColor = MindBoostPrimary)) {
                                     Text(text = stringResource(R.string.ok))
                                 }
                             }
@@ -422,14 +392,14 @@ fun DailyLogScreen(
 }
 
 
-
 @Composable
 fun HabitCard(
     habit: String,
     isChecked: Boolean,
     duration: String,
     onCheckedChange: (Boolean) -> Unit,
-    onDurationChange: (String) -> Unit
+    onDurationChange: (String) -> Unit,
+    unit: String
 ) {
     var isPressed by remember { mutableStateOf(false) }
 
@@ -508,11 +478,11 @@ fun HabitCard(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     OutlinedTextField(
-                        value = duration,
+                        value = duration, // siempre vacío al iniciar
                         onValueChange = onDurationChange,
                         placeholder = {
                             Text(
-                                text = stringResource(R.string.dailylog_duration_label),
+                                text = unit, // ← aquí pasas "horas" o "minutos"
                                 color = MindBoostText.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.bodySmall
                             )
@@ -529,6 +499,7 @@ fun HabitCard(
                         textStyle = MaterialTheme.typography.bodySmall,
                         singleLine = true
                     )
+
                 }
             }
         }

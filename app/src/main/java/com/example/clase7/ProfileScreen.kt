@@ -19,12 +19,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.clase7.models.User
 import com.example.clase7.ui.theme.*
@@ -40,36 +42,28 @@ fun ProfileScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid
 
+    // 🔹 Variables de estado
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Variables de edición
     var isEditing by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
-    var availableHours by remember { mutableStateOf("") }
-
     var nameError by remember { mutableStateOf<Int?>(null) }
     var ageError by remember { mutableStateOf<Int?>(null) }
-    var hoursError by remember { mutableStateOf<Int?>(null) }
 
     val profile_update = stringResource(R.string.profile_updated)
 
-    // Cargar datos del usuario desde Firestore
+    // 🔹 Cargar datos del usuario
     LaunchedEffect(Unit) {
         userId?.let { uid ->
             db.collection(USERS_COLLECTION).document(uid).get()
                 .addOnSuccessListener { document ->
                     val data = document.data
                     if (data != null) {
-                        // Convertir habits a Map<String, String>
                         val habitsMap = when (val h = data["habits"]) {
-                            is Map<*, *> -> h.mapKeys { it.key.toString() }
-                                .mapValues { it.value.toString() }
-                            is List<*> -> {
-                                // Si es lista, la convertimos a mapa con valores por defecto
-                                (h.filterIsInstance<String>()).associateWith { "0" }
-                            }
+                            is Map<*, *> -> h.mapKeys { it.key.toString() }.mapValues { it.value.toString() }
+                            is List<*> -> (h.filterIsInstance<String>()).associateWith { "0" }
                             else -> emptyMap()
                         }
 
@@ -77,53 +71,46 @@ fun ProfileScreen(navController: NavController) {
                             name = data["name"] as? String ?: "",
                             age = (data["age"] as? Long)?.toInt() ?: 0,
                             gender = data["gender"] as? String ?: "",
-                            availableHours = data["availableHours"] as? String ?: "0",
                             habits = habitsMap,
-                            profileHabits = (data["profileHabits"] as? List<String>) ?: emptyList(),
                             streakCount = (data["streakCount"] as? Long)?.toInt() ?: 0,
                             lastDailyDate = data["lastDailyDate"] as? String ?: ""
                         )
 
-                        // Inicializar los campos editables
                         name = user!!.name
                         age = user!!.age.toString()
-                        availableHours = user!!.availableHours
                     }
                     isLoading = false
                 }
-                .addOnFailureListener { e ->
-                    Toast.makeText(context, e.message ?: "Error", Toast.LENGTH_SHORT).show()
+                .addOnFailureListener {
+                    Toast.makeText(context, it.message ?: "Error", Toast.LENGTH_SHORT).show()
                     isLoading = false
                 }
         }
     }
 
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFFE3F2FD), Color(0xFFBBDEFB))
-                )
+                Brush.verticalGradient(listOf(Color(0xFF2196F3), Color(0xFF4CAF50)))
             )
             .padding(16.dp)
     ) {
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color(0xFF43A047))
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = stringResource(R.string.profile_loading), fontWeight = FontWeight.Bold)
-                }
+                CircularProgressIndicator(color = Color.White)
             }
         } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Flecha de regreso y título
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 🔹 Flecha de regreso y título
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -132,28 +119,35 @@ fun ProfileScreen(navController: NavController) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = stringResource(R.string.back_to_home),
-                            tint = Color(0xFF0D47A1)
+                            tint = Color.White
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.profile_screen_title),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF0D47A1)
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔥 Racha actual
+                // 🔹 Icono principal
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = stringResource(R.string.profile_screen_icon_desc),
+                    tint = Color.White,
+                    modifier = Modifier.size(120.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 🔹 Racha
                 user?.let { u ->
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA726)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -177,8 +171,8 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // 🔹 Edición o visualización de perfil
                 if (isEditing) {
-                    // Campos editables
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
@@ -189,7 +183,6 @@ fun ProfileScreen(navController: NavController) {
                         supportingText = { nameError?.let { Text(text = stringResource(it), color = Color.Red) } }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-
                     OutlinedTextField(
                         value = age,
                         onValueChange = { age = it },
@@ -202,26 +195,23 @@ fun ProfileScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-
                     Button(
                         onClick = {
                             val nameValid = validateName(name)
                             val ageValid = validateAge(age)
-                            val hoursValid = validateHours(availableHours)
 
                             nameError = nameValid.second
                             ageError = ageValid.second
-                            hoursError = hoursValid.second
 
-                            if (nameValid.first && ageValid.first && hoursValid.first) {
+                            if (nameValid.first && ageValid.first) {
                                 userId?.let { uid ->
                                     val updatedUser = User(
                                         name = name,
                                         age = age.toInt(),
                                         gender = user!!.gender,
-                                        availableHours = availableHours,
                                         habits = user!!.habits,
-                                        streakCount = user!!.streakCount
+                                        streakCount = user!!.streakCount,
+                                        lastDailyDate = user!!.lastDailyDate
                                     )
                                     db.collection(USERS_COLLECTION).document(uid)
                                         .set(updatedUser)
@@ -238,38 +228,37 @@ fun ProfileScreen(navController: NavController) {
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047), contentColor = Color.White),
                         shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(55.dp)
+                        modifier = Modifier.fillMaxWidth().height(55.dp)
                     ) {
                         Text(text = stringResource(R.string.profile_save_button), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-
                     Button(
                         onClick = { isEditing = false },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Gray, contentColor = Color.White),
                         shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(55.dp)
+                        modifier = Modifier.fillMaxWidth().height(55.dp)
                     ) {
                         Text(text = stringResource(R.string.profile_cancel_button), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
                 } else {
-                    // Mostrar datos
                     user?.let { u ->
-                        ProfileDataCard(label = stringResource(R.string.profile_screen_name), value = u.name)
-                        ProfileDataCard(label = stringResource(R.string.profile_screen_age), value = u.age.toString())
-                        ProfileDataCard(label = stringResource(R.string.profile_screen_gender), value = u.gender)
-                        ProfileDataCard(label = stringResource(R.string.profile_screen_habits), value = u.habits.keys.joinToString(", "))
+                        val profileItems = listOf(
+                            ProfileInfoItem(Icons.Default.Person, stringResource(R.string.profile_screen_name), u.name, Color(0xFF4CAF50)),
+                            ProfileInfoItem(Icons.Default.Cake, stringResource(R.string.profile_screen_age), u.age.toString(), Color(0xFF9C27B0)),
+                            ProfileInfoItem(Icons.Default.Male, stringResource(R.string.profile_screen_gender), u.gender, Color(0xFFFF9800)),
+                            ProfileInfoItem(Icons.Default.Email, stringResource(R.string.profile_screen_email), auth.currentUser?.email ?: "", Color(0xFF03A9F4)),
+                            ProfileInfoItem(Icons.Default.Today, stringResource(R.string.profile_screen_lastdaily), u.lastDailyDate, Color(0xFF009688)),
+                            ProfileInfoItem(Icons.Default.Star, stringResource(R.string.profile_screen_habits), u.habits.keys.joinToString(", "), Color(0xFFFF5722))
+                        )
+                        ProfileInfoSection(stringResource(R.string.profile_screen_info_title), profileItems)
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Botones Editar y Cerrar sesión
+                    // 🔹 Botones Editar y Cerrar sesión
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
                             onClick = { isEditing = true },
@@ -298,42 +287,19 @@ fun ProfileScreen(navController: NavController) {
     }
 }
 
+// 🔹 Sección de info
 @Composable
-fun ProfileDataCard(label: String, value: String) {
+fun ProfileInfoSection(title: String, items: List<ProfileInfoItem>) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, fontWeight = FontWeight.SemiBold, color = Color(0xFF555555))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = value, fontWeight = FontWeight.Bold, color = Color(0xFF000000))
-            }
-        }
-    }
-}
-
-
-@Composable
-fun ProfileInfoSection(
-    title: String,
-    items: List<ProfileInfoItem>
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
+            .padding(vertical = 8.dp)
+            .heightIn(min = 350.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.9f)
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
@@ -341,55 +307,31 @@ fun ProfileInfoSection(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             items.forEach { item ->
                 ProfileInfoRow(item = item)
-                if (item != items.last()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
+                if (item != items.last()) Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
 }
 
+// 🔹 Fila de info
 @Composable
 fun ProfileInfoRow(item: ProfileInfoItem) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Ícono
-        Icon(
-            imageVector = item.icon,
-            contentDescription = item.label,
-            tint = item.color,
-            modifier = Modifier.size(24.dp)
-        )
-        
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = item.icon, contentDescription = item.label, tint = item.color, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        
-        // Información
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = item.label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MindBoostText.copy(alpha = 0.7f)
-            )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = item.label, style = MaterialTheme.typography.bodyMedium, color = MindBoostText.copy(alpha = 0.7f))
             Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = item.value,
-                style = MaterialTheme.typography.titleMedium,
-                color = MindBoostText,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(text = item.value, style = MaterialTheme.typography.titleMedium, color = MindBoostText, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 data class ProfileInfoItem(
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: ImageVector,
     val label: String,
     val value: String,
     val color: Color

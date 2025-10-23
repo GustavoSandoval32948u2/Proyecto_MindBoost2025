@@ -52,11 +52,10 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
 
-    var userProfileHabits by remember { mutableStateOf<List<String>>(emptyList()) } // Hábitos del perfil
-    var userSavedHabits: Map<String, String> by remember { mutableStateOf(emptyMap()) } // Hábitos guardados
-    val selectedHabits = remember { mutableStateListOf<String>() } // Selección actual
-    val unitSelections = remember { mutableStateMapOf<String, String>() } // "min" o "h"
-    val durationInputs = remember { mutableStateMapOf<String, String>() } // duración ingresada
+    var userSavedHabits: Map<String, String> by remember { mutableStateOf(emptyMap()) } // Hábitos guardados reales
+    val selectedHabits = remember { mutableStateListOf<String>() }
+    val unitSelections = remember { mutableStateMapOf<String, String>() }
+    val durationInputs = remember { mutableStateMapOf<String, String>() }
 
     var showLimitToast by remember { mutableStateOf(false) }
     var showMinToast by remember { mutableStateOf(false) }
@@ -75,39 +74,7 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
     val error_loading = stringResource(R.string.error_loading_habits)
     val error_saving = stringResource(R.string.error_saving_habits)
 
-    // 🔄 Cargar hábitos del usuario
-    LaunchedEffect(userId) {
-        userId?.let { id ->
-            db.collection("users").document(id).get()
-                .addOnSuccessListener { doc ->
-                    if (doc.exists()) {
-                        val profileHabitsList = doc.get("profileHabits") as? List<String> ?: emptyList()
-                        userProfileHabits = profileHabitsList
-
-                        val habitsMapRaw = doc.get("habits") as? Map<*, *> ?: emptyMap<Any?, Any?>()
-                        val parsedHabits = habitsMapRaw.mapNotNull { (key, value) ->
-                            val name = key as? String ?: return@mapNotNull null
-                            val duration = value?.toString() ?: "0"
-                            name to duration
-                        }.toMap()
-
-                        userSavedHabits = parsedHabits
-                        selectedHabits.clear()
-                        selectedHabits.addAll(parsedHabits.keys)
-
-                        parsedHabits.forEach { (habit, value) ->
-                            val minutes = value.toIntOrNull() ?: 0
-                            durationInputs[habit] = value
-                            unitSelections[habit] = if (minutes >= 60) "h" else "min"
-                        }
-                    }
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(context, e.message ?: error_loading, Toast.LENGTH_SHORT).show()
-                }
-        }
-    }
-
+    // Lista completa de hábitos posibles (los que aparecen en pantalla)
     val allHabits = listOf(
         stringResource(R.string.habit_sleep),
         stringResource(R.string.habit_study),
@@ -120,6 +87,37 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
         stringResource(R.string.habit_drinking_water)
     )
 
+    // 🔹 Cargar hábitos del usuario desde Firebase
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            try {
+                val userDoc = db.collection("users").document(userId).get().await()
+                if (userDoc.exists()) {
+                    val habitsMapRaw = userDoc.get("habits") as? Map<String, Map<String, Any?>> ?: emptyMap()
+
+                    val parsedHabits = mutableMapOf<String, String>()
+                    habitsMapRaw.forEach { (habitName, values) ->
+                        val duration = values?.get("second")?.toString() ?: "0"
+                        parsedHabits[habitName] = duration
+                    }
+                    userSavedHabits = parsedHabits
+
+                    // 🔹 Preseleccionar hábitos ya guardados
+                    selectedHabits.clear()
+                    parsedHabits.forEach { (habit, duration) ->
+                        selectedHabits.add(habit)
+                        durationInputs[habit] = duration
+                        val minutes = duration.toIntOrNull() ?: 0
+                        unitSelections[habit] = if (minutes >= 60) "h" else "min"
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message ?: error_loading, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // 🔹 UI principal
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -141,11 +139,11 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
             color = Color.Gray,
             fontSize = 16.sp
         )
+
         Spacer(modifier = Modifier.height(16.dp))
 
         allHabits.forEach { habit ->
             val alreadySelected = selectedHabits.contains(habit)
-            val isOriginal = userProfileHabits.contains(habit)
 
             Card(
                 modifier = Modifier
@@ -153,7 +151,7 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
                     .padding(vertical = 6.dp)
                     .clickable {
                         when {
-                            alreadySelected && !isOriginal -> {
+                            alreadySelected -> {
                                 if (selectedHabits.size > 1) {
                                     selectedHabits.remove(habit)
                                     durationInputs.remove(habit)
@@ -242,18 +240,26 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        val hasValidHabits = selectedHabits.any { durationInputs[it]?.toIntOrNull() != null && (durationInputs[it]?.toInt() ?: 0) > 0 }
+        val hasValidHabits = selectedHabits.any {
+            durationInputs[it]?.toIntOrNull() != null && (durationInputs[it]?.toInt() ?: 0) > 0
+        }
 
+        // 🔹 Guardar cambios en Firebase
         Button(
             onClick = {
                 userId?.let { uid ->
-                    val toSave = selectedHabits.associateWith { habit ->
+                    val habitsToSave = selectedHabits.associateWith { habit ->
                         val raw = durationInputs[habit]?.toIntOrNull() ?: 0
                         val unit = unitSelections[habit]
-                        if (unit == "h") (raw * 60).toString() else raw.toString()
+                        val minutes = if (unit == "h") raw * 60 else raw
+                        mapOf(
+                            "first" to habit,
+                            "second" to minutes.toString()
+                        )
                     }
+
                     db.collection("users").document(uid)
-                        .update("habits", toSave)
+                        .update("habits", habitsToSave)
                         .addOnSuccessListener {
                             Toast.makeText(context, create_saved, Toast.LENGTH_SHORT).show()
                             navController.navigate("home") {

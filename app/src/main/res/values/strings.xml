@@ -128,6 +128,14 @@
     <string name="profile_habits_title">Lista de hábitos:</string>
     <string name="habit_duration_unit">hrs/min</string>
     <string name="profile_streak_icon">Ícono de racha</string>
+    <string name="profile_info_title">Información del usuario</string>
+    <string name="profile_screen_email">Correo electrónico</string>
+    <string name="profile_screen_lastdaily">Último Daily</string>
+    <string name="profile_screen_icon_desc">Icono de perfil</string>
+    <string name="profile_screen_info_title">Información del usuario</string>
+    <string name="profile_screen_back_button">Volver</string>
+    <string name="loading_user_data">Cargando datos del usuario...</string>
+
 
 
 
@@ -179,25 +187,32 @@
     <string name="habit_coding">💻 Programación</string>
     <string name="habit_drinking_water">🥤 Beber agua</string>
 
-    <!-- Stats -->
-    <string name="stats_title">Estadísticas</string>
-    <string name="stats_back_home">Volver al Home</string>
-    <string name="stats_no_habits">No se han registrado hábitos hoy</string>
 
-    <string name="stats_completed">Completados</string>
-    <string name="stats_possible">Posibles</string>
-    <string name="stats_from">Desde</string>
-    <string name="stats_bar_label">Progreso de hábitos</string>
-    <string name="stats_no_data">No hay datos para mostrar</string>
-    <string name="stats_daily_avg">Promedio diario de hábitos</string>
-
-    <!-- Promedio de hábitos diarios -->
-    <string name="stats_average">Promedio</string>
-    <string name="stats_daily_average">Promedio diario de hábitos</string>
 
     <!-- Recommendations -->
     <string name="recommendations_title">Recomendaciones</string>
     <string name="recommendations_back_home">Volver al Home</string>
+    <string name="recommendations_no_active_habits">No tienes hábitos activos</string>
+    <string name="recommendations_loading">Cargando recomendación...</string>
+    <string name="recommendations_error">Error al obtener la recomendación: %1$s</string>
+    <string name="recommendations_card_title">Recomendación para: {habit}</string>
+    <string name="recommendations_load_error">Error al cargar datos del usuario</string>
+    <string name="recommendations_ai_prompt">
+    Eres un coach personal que da recomendaciones detalladas y motivadoras sobre hábitos saludables.
+    Usuario: {age} años, género {gender}, racha de {streak} días.
+    Hábito: {habit}
+    Duración promedio: {duration}
+    Veces completado: {done}
+    Notas previas: {notes}
+
+    Genera una recomendación concreta, personalizada y práctica para mejorar este hábito, incluyendo sugerencias de horario, ejemplos y cómo integrarlo en la rutina diaria. Usa varias oraciones completas.
+    </string>
+    <string name="recommendations_general_prompt">
+    Eres un asistente que da consejos generales para mantener hábitos saludables.
+    Da una recomendación breve pero útil para ser constante, mantener hábitos y mejorar la disciplina.
+    </string>
+    <string name="recommendations_general_button">Recomendación general</string>
+    <string name="recommendations_subtitle">Hola %1$s, estas son tus recomendaciones personalizadas para hoy:</string>
 
 
     <!-- Medals -->
@@ -287,5 +302,35 @@
     <string name="notification_channel_desc">Canal para notificaciones de hábitos diarios</string>
     <string name="notification_message">No olvides registrar tus hábitos de hoy</string>
 
-</resources>
+    <!-- Stats -->
+    <string name="stats_back_home">Volver al Home</string>
+    <string name="stats_no_habits">No se han registrado hábitos hoy</string>
+    <string name="stats_bar_label">Progreso de hábitos</string>
+    <string name="stats_no_data">No hay datos para mostrar</string>
+    <string name="stats_daily_avg">Promedio diario de hábitos</string>
+    <string name="stats_average">Promedio</string>
+    <string name="stats_loading">Cargando estadísticas...</string>
+    <string name="stats_title">Estadísticas</string>
+    <string name="stats_back">Regresar</string>
+    <string name="stats_progress">Progreso</string>
+    <string name="stats_your_progress">Tu Progreso</string>
+    <string name="stats_completed_habits">de hábitos completados</string>
+    <string name="stats_completed">Hábitos Completados</string>
+    <string name="stats_possible">Total Posible</string>
+    <string name="stats_daily_average">Promedio Diario</string>
+    <string name="stats_average_icon">Promedio</string>
+    <string name="stats_period_icon">Período</string>
+    <string name="stats_from">Desde</string>
+    <string name="stats_average_label">Promedio</string>
+    <string name="stats_legend">Leyenda de Progreso</string>
+    <string name="stats_legend_excellent">Excelente\n(≥80%)</string>
+    <string name="stats_legend_very_good">Muy Bueno\n(≥60%)</string>
+    <string name="stats_legend_good">Bueno\n(≥40%)</string>
+    <string name="stats_legend_regular">Regular\n(≥20%)</string>
+    <string name="stats_legend_improve">Mejorar\n(20%)</string>
+    <string name="stats_no_data_icon">Sin datos</string>
+    <string name="stats_no_stats">No hay estadísticas disponibles</string>
+    <string name="stats_start_logging">Comienza a registrar tus hábitos para ver tu progreso</string>
+    <string name="stats_motivational">Los números cuentan tu historia de crecimiento 📈</string>
 
+</resources>

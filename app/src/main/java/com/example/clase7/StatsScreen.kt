@@ -34,53 +34,35 @@ import com.github.mikephil.charting.utils.ColorTemplate
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.clase7.models.User
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun StatsScreen(navController: NavController) {
+fun StatsScreen(navController: NavController, user: User?) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
     val uid = FirebaseAuth.getInstance().currentUser?.uid
 
-    var profileHabits by remember { mutableStateOf<List<String>>(emptyList()) }
     var habitLogs by remember { mutableStateOf<Map<String, Map<String, Boolean>>>(emptyMap()) }
     var startDate by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
-    val state_ave = stringResource(R.string.stats_average)
-
     // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.8f,
-        animationSpec = tween(600),
-        label = "scale"
-    )
-    
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(800),
-        label = "alpha"
-    )
+    LaunchedEffect(Unit) { isVisible = true }
+    val scale by animateFloatAsState(targetValue = if (isVisible) 1f else 0.8f, animationSpec = tween(600))
+    val alpha by animateFloatAsState(targetValue = if (isVisible) 1f else 0f, animationSpec = tween(800))
 
-    // 🔹 Carga segura de datos
+    val stats_average = stringResource(R.string.stats_average_label)
+
+    // 🔹 Carga de logs
     LaunchedEffect(uid) {
         uid?.let { userId ->
             try {
                 val userRef = db.collection("users").document(userId)
-
-                // Cargar hábitos del perfil
-                val userDoc = userRef.get().await()
-                profileHabits = userDoc.get("habits") as? List<String> ?: emptyList()
-
-                // Cargar logs
                 val snapshot = userRef.collection("habitLogs").get().await()
                 val logs = mutableMapOf<String, Map<String, Boolean>>()
                 snapshot.documents.forEach { doc ->
@@ -91,52 +73,32 @@ fun StatsScreen(navController: NavController) {
                 }
                 habitLogs = logs
                 startDate = logs.keys.minOrNull()
-                isLoading = false
-            } catch (e: Exception) {
-                isLoading = false
-            }
+            } catch (e: Exception) { }
+            finally { isLoading = false }
         }
     }
 
-    // 🔹 Cálculos protegidos
-    val totalCompleted = habitLogs.values.sumOf { it.values.count { v -> v } }
-    val totalPossible = habitLogs.values.sumOf { it.size }
-    val averageDaily = if (profileHabits.isNotEmpty() && habitLogs.isNotEmpty()) {
-        totalCompleted.toFloat() / habitLogs.size
-    } else 0f
-    val completionRate = if (totalPossible > 0) {
-        (totalCompleted.toFloat() / totalPossible * 100).toInt()
-    } else 0
+    // 🔹 Cálculos protegidos solo con hábitos activos
+    val activeHabits = user?.habits?.keys ?: emptySet()
+    val totalCompleted = habitLogs.values.sumOf { log -> log.filterKeys { it in activeHabits }.values.count { it } }
+    val totalPossible = habitLogs.values.sumOf { log -> log.filterKeys { it in activeHabits }.size }
+    val averageDaily = if (activeHabits.isNotEmpty() && habitLogs.isNotEmpty()) totalCompleted.toFloat() / habitLogs.size else 0f
+    val completionRate = if (totalPossible > 0) (totalCompleted.toFloat() / totalPossible * 100).toInt() else 0
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MindBoostBackground,
-                        Color(0xFFE3EEFA)
-                    )
-                )
+                Brush.verticalGradient(listOf(MindBoostBackground, Color(0xFFE3EEFA)))
             )
     ) {
         if (isLoading) {
-            // Pantalla de carga moderna
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.scale(scale).alpha(alpha)
-                ) {
-                    CircularProgressIndicator(
-                        color = MindBoostPrimary,
-                        modifier = Modifier.size(48.dp)
-                    )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.scale(scale).alpha(alpha)) {
+                    CircularProgressIndicator(color = MindBoostPrimary, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Cargando estadísticas...",
+                        text = stringResource(R.string.stats_loading),
                         style = MaterialTheme.typography.titleMedium,
                         color = MindBoostText,
                         fontWeight = FontWeight.SemiBold
@@ -145,7 +107,6 @@ fun StatsScreen(navController: NavController) {
             }
         } else {
             val scrollState = rememberScrollState()
-            
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -156,113 +117,46 @@ fun StatsScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
-                
-                // Encabezado con botón de regreso
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+
+                // Encabezado
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = { navController.navigate("home") { popUpTo("stats") { inclusive = true } } },
-                        modifier = Modifier
-                            .background(
-                                Color.White.copy(alpha = 0.9f),
-                                RoundedCornerShape(12.dp)
-                            )
+                        modifier = Modifier.background(Color.White.copy(alpha = 0.9f), RoundedCornerShape(12.dp))
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = MindBoostPrimary
-                        )
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = stringResource(R.string.stats_back), tint = MindBoostPrimary)
                     }
-                    
                     Spacer(modifier = Modifier.width(16.dp))
-                    
-                    Text(
-                        text = stringResource(R.string.stats_title),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MindBoostPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = stringResource(R.string.stats_title), style = MaterialTheme.typography.headlineLarge, color = MindBoostPrimary, fontWeight = FontWeight.Bold)
                 }
 
                 // Resumen principal
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.9f)
-                    ),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Ícono principal
+                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .background(
-                                    MindBoostSecondary.copy(alpha = 0.1f),
-                                    RoundedCornerShape(30.dp)
-                                ),
+                            modifier = Modifier.size(60.dp).background(MindBoostSecondary.copy(alpha = 0.1f), RoundedCornerShape(30.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.TrendingUp,
-                                contentDescription = "Progreso",
-                                tint = MindBoostSecondary,
-                                modifier = Modifier.size(30.dp)
-                            )
+                            Icon(imageVector = Icons.Default.TrendingUp, contentDescription = stringResource(R.string.stats_progress), tint = MindBoostSecondary, modifier = Modifier.size(30.dp))
                         }
-                        
                         Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Text(
-                            text = "Tu Progreso",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MindBoostText,
-                            fontWeight = FontWeight.Bold
-                        )
-                        
+                        Text(text = stringResource(R.string.stats_your_progress), style = MaterialTheme.typography.headlineMedium, color = MindBoostText, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "$completionRate% de hábitos completados",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MindBoostText.copy(alpha = 0.7f)
-                        )
+                        Text(text = "$completionRate% ${stringResource(R.string.stats_completed_habits)}", style = MaterialTheme.typography.titleMedium, color = MindBoostText.copy(alpha = 0.7f))
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Tarjetas de estadísticas principales
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Hábitos Completados
-                    StatCard(
-                        title = stringResource(R.string.stats_completed),
-                        value = totalCompleted.toString(),
-                        icon = Icons.Default.CheckCircle,
-                        color = Color(0xFF4CAF50),
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    // Total Posible
-                    StatCard(
-                        title = stringResource(R.string.stats_possible),
-                        value = totalPossible.toString(),
-                        icon = Icons.Default.TrackChanges,
-                        color = MindBoostPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatCard(title = stringResource(R.string.stats_completed), value = totalCompleted.toString(), icon = Icons.Default.CheckCircle, color = Color(0xFF4CAF50), modifier = Modifier.weight(1f))
+                    StatCard(title = stringResource(R.string.stats_possible), value = totalPossible.toString(), icon = Icons.Default.TrackChanges, color = MindBoostPrimary, modifier = Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -271,349 +165,177 @@ fun StatsScreen(navController: NavController) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFF9800).copy(alpha = 0.9f)
-                    ),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.9f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text(
-                                text = "Promedio Diario",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Text(text = stringResource(R.string.stats_daily_average), style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = String.format("%.1f", averageDaily),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Text(text = String.format("%.1f", averageDaily), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         }
-                        
-                        Icon(
-                            imageVector = Icons.Default.Analytics,
-                            contentDescription = "Promedio",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
+                        Icon(imageVector = Icons.Default.Analytics, contentDescription = stringResource(R.string.stats_average_icon), tint = Color.White, modifier = Modifier.size(32.dp))
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Información de período
                 startDate?.let {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.9f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Período",
-                                tint = MindBoostAccent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.DateRange, contentDescription = stringResource(R.string.stats_period_icon), tint = MindBoostAccent, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            
-                            Text(
-                                text = "${stringResource(R.string.stats_from)}: $it",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MindBoostText
-                            )
+                            Text(text = "${stringResource(R.string.stats_from)}: $it", style = MaterialTheme.typography.bodyMedium, color = MindBoostText)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 🔹 Gráfica de barras mejorada
-                if (profileHabits.isNotEmpty() && habitLogs.isNotEmpty()) {
+                // Gráfica de barras y leyenda
+                if (activeHabits.isNotEmpty() && habitLogs.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.9f)
-                        ),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
-                        ) {
-                            Text(
-                                text = "Progreso por Hábito",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MindBoostText,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
-                            
-                            val entries = profileHabits.mapIndexed { index, habit ->
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(text = stringResource(R.string.stats_bar_label), style = MaterialTheme.typography.titleLarge, color = MindBoostText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
+                            val entries = activeHabits.mapIndexed { index, habit ->
                                 val habitTotal = habitLogs.values.count { it[habit] == true }
                                 BarEntry(index.toFloat(), habitTotal.toFloat())
                             }.takeIf { it.isNotEmpty() } ?: emptyList()
 
                             if (entries.isNotEmpty()) {
-                            val dataSet = BarDataSet(entries, stringResource(R.string.stats_bar_label)).apply {
-                                colors = entries.map { entry ->
-                                    val pct = if (habitLogs.isNotEmpty()) entry.y / habitLogs.size else 0f
-                                    when {
-                                        pct >= 0.8f -> Color(0xFF4CAF50).hashCode() // Verde éxito
-                                        pct >= 0.6f -> Color(0xFF8BC34A).hashCode() // Verde claro
-                                        pct >= 0.4f -> Color(0xFFFF9800).hashCode() // Naranja progreso
-                                        pct >= 0.2f -> Color(0xFFFFC107).hashCode() // Amarillo mejora
-                                        else -> Color(0xFFE57373).hashCode() // Rojo claro
+                                val dataSet = BarDataSet(entries, stringResource(R.string.stats_bar_label)).apply {
+                                    colors = entries.map { entry ->
+                                        val pct = if (habitLogs.isNotEmpty()) entry.y / habitLogs.size else 0f
+                                        when {
+                                            pct >= 0.8f -> Color(0xFF4CAF50).hashCode()
+                                            pct >= 0.6f -> Color(0xFF8BC34A).hashCode()
+                                            pct >= 0.4f -> Color(0xFFFF9800).hashCode()
+                                            pct >= 0.2f -> Color(0xFFFFC107).hashCode()
+                                            else -> Color(0xFFE57373).hashCode()
+                                        }
                                     }
-                                }
-                                setDrawValues(true)
-                                valueTextSize = 12f
-                                valueTextColor = Color.White.hashCode()
-                                valueFormatter = object : ValueFormatter() {
-                                    override fun getFormattedValue(value: Float): String {
-                                        return "${value.toInt()}"
+                                    setDrawValues(true)
+                                    valueTextSize = 12f
+                                    valueTextColor = Color.White.hashCode()
+                                    valueFormatter = object : ValueFormatter() {
+                                        override fun getFormattedValue(value: Float): String = "${value.toInt()}"
                                     }
+                                    setDrawIcons(false)
+                                    barBorderWidth = 0f
+                                    setHighLightColor(Color(0xFF7B61FF).hashCode())
                                 }
-                                setDrawIcons(false)
-                                barBorderWidth = 0f
-                                setHighLightColor(Color(0xFF7B61FF).hashCode())
-                            }
 
                                 val barData = BarData(dataSet).apply { barWidth = 0.7f }
 
-                                AndroidView(
-                                    factory = { context ->
-                                        BarChart(context).apply {
-                                            data = barData
-                                            description.isEnabled = false
-                                            axisRight.isEnabled = false
-                                            setTouchEnabled(true)
-                                            setDragEnabled(true)
-                                            setScaleEnabled(true)
-                                            setPinchZoom(true)
-
-                                            // Configuración del eje Y izquierdo
-                                            axisLeft.apply {
-                                                axisMinimum = 0f
-                                                granularity = 1f
-                                                setDrawGridLines(true)
-                                                gridLineWidth = 1f
-                                                gridColor = Color(0xFFE0E0E0).hashCode()
-                                                textSize = 11f
-                                                textColor = MindBoostText.hashCode()
-                                                setDrawAxisLine(true)
-                                                axisLineWidth = 2f
-                                                axisLineColor = MindBoostText.hashCode()
-                                                setDrawLabels(true)
-                                                setLabelCount(5, true)
-                                                
-                                                // Línea de promedio mejorada
-                                                val limitLine = LimitLine(averageDaily, "Promedio: ${String.format("%.1f", averageDaily)}")
-                                                limitLine.lineWidth = 3f
-                                                limitLine.lineColor = MindBoostAccent.hashCode()
-                                                limitLine.textSize = 10f
-                                                limitLine.textColor = MindBoostAccent.hashCode()
-                                                limitLine.enableDashedLine(10f, 5f, 0f)
-                                                addLimitLine(limitLine)
-                                            }
-
-                                            // Configuración del eje X
-                                            xAxis.apply {
-                                                granularity = 1f
-                                                setDrawGridLines(false)
-                                                textSize = 11f
-                                                textColor = MindBoostText.hashCode()
-                                                setDrawAxisLine(true)
-                                                axisLineWidth = 2f
-                                                axisLineColor = MindBoostText.hashCode()
-                                                setDrawLabels(true)
-                                                setLabelCount(profileHabits.size, false)
-                                                valueFormatter = object : ValueFormatter() {
-                                                    override fun getFormattedValue(value: Float): String {
-                                                        val habitName = profileHabits.getOrNull(value.toInt()) ?: ""
-                                                        return when {
-                                                            habitName.length <= 6 -> habitName
-                                                            habitName.length <= 10 -> habitName.take(8) + ".."
-                                                            else -> habitName.take(6) + "..."
-                                                        }
-                                                    }
-                                                }
-                                                labelRotationAngle = -30f
-                                                yOffset = 10f
-                                            }
-
-                                            // Configuración general del gráfico
-                                            legend.isEnabled = false
-                                            setFitBars(true)
-                                            setBackgroundColor(Color.Transparent.hashCode())
-                                            setDrawGridBackground(false)
-                                            
-                                            // Animación suave
-                                            animateY(1000)
-                                            animateX(1000)
-                                            
-                                            // Configuración de valores en las barras
-                                            setDrawValueAboveBar(true)
-                                            setMaxVisibleValueCount(10)
-                                            
-                                            invalidate()
+                                AndroidView(factory = { context ->
+                                    BarChart(context).apply {
+                                        data = barData
+                                        description.isEnabled = false
+                                        axisRight.isEnabled = false
+                                        setTouchEnabled(true)
+                                        setDragEnabled(true)
+                                        setScaleEnabled(true)
+                                        setPinchZoom(true)
+                                        axisLeft.apply {
+                                            axisMinimum = 0f
+                                            granularity = 1f
+                                            setDrawGridLines(true)
+                                            gridLineWidth = 1f
+                                            gridColor = Color(0xFFE0E0E0).hashCode()
+                                            textSize = 11f
+                                            textColor = MindBoostText.hashCode()
+                                            setDrawAxisLine(true)
+                                            axisLineWidth = 2f
+                                            axisLineColor = MindBoostText.hashCode()
+                                            setDrawLabels(true)
+                                            setLabelCount(5, true)
+                                            val limitLine = LimitLine(averageDaily, "${stats_average}: ${String.format("%.1f", averageDaily)}")
+                                            limitLine.lineWidth = 3f
+                                            limitLine.lineColor = MindBoostAccent.hashCode()
+                                            limitLine.textSize = 10f
+                                            limitLine.textColor = MindBoostAccent.hashCode()
+                                            limitLine.enableDashedLine(10f, 5f, 0f)
+                                            addLimitLine(limitLine)
                                         }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(350.dp)
-                                )
-                                
-                                // Leyenda de colores profesional
+                                        xAxis.apply {
+                                            granularity = 1f
+                                            setDrawGridLines(false)
+                                            textSize = 11f
+                                            textColor = MindBoostText.hashCode()
+                                            setDrawAxisLine(true)
+                                            axisLineWidth = 2f
+                                            axisLineColor = MindBoostText.hashCode()
+                                            setDrawLabels(true)
+                                            setLabelCount(activeHabits.size, false)
+                                            valueFormatter = object : ValueFormatter() {
+                                                override fun getFormattedValue(value: Float): String {
+                                                    val habitName = activeHabits.elementAtOrNull(value.toInt()) ?: ""
+                                                    return if (habitName.length <= 6) habitName else habitName.take(6) + "..."
+                                                }
+                                            }
+                                            labelRotationAngle = -30f
+                                            yOffset = 10f
+                                        }
+                                        legend.isEnabled = false
+                                        setFitBars(true)
+                                        setBackgroundColor(Color.Transparent.hashCode())
+                                        setDrawGridBackground(false)
+                                        animateY(1000)
+                                        animateX(1000)
+                                        setDrawValueAboveBar(true)
+                                        setMaxVisibleValueCount(10)
+                                        invalidate()
+                                    }
+                                }, modifier = Modifier.fillMaxWidth().height(350.dp))
+
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFF8F9FA)
-                                    ),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp)
-                                    ) {
-                                        Text(
-                                            text = "Leyenda de Progreso",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = MindBoostText,
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.padding(bottom = 12.dp)
-                                        )
-                                        
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceEvenly
-                                        ) {
-                                            LegendItem(
-                                                color = Color(0xFF4CAF50),
-                                                label = "Excelente\n(≥80%)",
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            LegendItem(
-                                                color = Color(0xFF8BC34A),
-                                                label = "Muy Bueno\n(≥60%)",
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            LegendItem(
-                                                color = Color(0xFFFF9800),
-                                                label = "Bueno\n(≥40%)",
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            LegendItem(
-                                                color = Color(0xFFFFC107),
-                                                label = "Regular\n(≥20%)",
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            LegendItem(
-                                                color = Color(0xFFE57373),
-                                                label = "Mejorar\n(<20%)",
-                                                modifier = Modifier.weight(1f)
-                                            )
+
+                                // Leyenda
+                                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(text = stringResource(R.string.stats_legend), style = MaterialTheme.typography.titleSmall, color = MindBoostText, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 12.dp))
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                            LegendItem(color = Color(0xFF4CAF50), label = stringResource(R.string.stats_legend_excellent), modifier = Modifier.weight(1f))
+                                            LegendItem(color = Color(0xFF8BC34A), label = stringResource(R.string.stats_legend_very_good), modifier = Modifier.weight(1f))
+                                            LegendItem(color = Color(0xFFFF9800), label = stringResource(R.string.stats_legend_good), modifier = Modifier.weight(1f))
+                                            LegendItem(color = Color(0xFFFFC107), label = stringResource(R.string.stats_legend_regular), modifier = Modifier.weight(1f))
+                                            LegendItem(color = Color(0xFFE57373), label = stringResource(R.string.stats_legend_improve), modifier = Modifier.weight(1f))
                                         }
                                     }
                                 }
+
                             } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "No hay datos suficientes para mostrar el gráfico",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MindBoostText.copy(alpha = 0.7f),
-                                        textAlign = TextAlign.Center
-                                    )
+                                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                    Text(text = stringResource(R.string.stats_no_data), style = MaterialTheme.typography.bodyMedium, color = MindBoostText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
                                 }
                             }
                         }
                     }
                 } else {
-                    // Estado vacío
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.9f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.BarChart,
-                                contentDescription = "Sin datos",
-                                tint = MindBoostText.copy(alpha = 0.5f),
-                                modifier = Modifier.size(48.dp)
-                            )
-                            
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(imageVector = Icons.Default.BarChart, contentDescription = stringResource(R.string.stats_no_data_icon), tint = MindBoostText.copy(alpha = 0.5f), modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Text(
-                                text = "No hay estadísticas disponibles",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MindBoostText,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            
+                            Text(text = stringResource(R.string.stats_no_stats), style = MaterialTheme.typography.titleMedium, color = MindBoostText, fontWeight = FontWeight.SemiBold)
                             Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Text(
-                                text = "Comienza a registrar tus hábitos para ver tu progreso",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MindBoostText.copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center
-                            )
+                            Text(text = stringResource(R.string.stats_start_logging), style = MaterialTheme.typography.bodyMedium, color = MindBoostText.copy(alpha = 0.7f), textAlign = TextAlign.Center)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
-
-                // Frase motivacional
-                Text(
-                    text = "Los números cuentan tu historia de crecimiento 📈",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MindBoostText.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-
+                Text(text = stringResource(R.string.stats_motivational), style = MaterialTheme.typography.bodyMedium, color = MindBoostText.copy(alpha = 0.6f), textAlign = TextAlign.Center, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, modifier = Modifier.padding(horizontal = 16.dp))
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
 }
+
 
 @Composable
 fun StatCard(

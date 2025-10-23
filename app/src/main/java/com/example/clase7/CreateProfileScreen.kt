@@ -312,27 +312,38 @@ fun CreateProfileScreen(navController: NavController) {
                                             habit to inMinutes.toString() // <-- aquí
                                         }.toMap()
 
-                                        // Crear objeto User
-                                        val userData = User(
-                                            name = name,
-                                            age = age.toInt(),
-                                            gender = gender,
-                                            habits = convertedDurations,
-                                            profileHabits = selectedHabits.toList(),
-                                            streakCount = 0,
-                                            lastDailyDate = ""
+                                        // Crear estructura de hábitos para Firebase
+                                        val habitsMap = convertedDurations.map { (habit, duration) ->
+                                            habit to mapOf(
+                                                "first" to habit,
+                                                "second" to duration
+                                            )
+                                        }.toMap()
+
+                                        val userData = mapOf(
+                                            "name" to name,
+                                            "age" to age.toInt(),
+                                            "gender" to gender,
+                                            "availableHours" to "0",
+                                            "habits" to habitsMap,
+                                            "streakCount" to 0,
+                                            "lastDailyDate" to ""
                                         )
+
 
                                         db.collection(USERS_COLLECTION).document(uid)
                                             .set(userData)
                                             .addOnSuccessListener {
                                                 Toast.makeText(context, dataSavedMsg, Toast.LENGTH_SHORT).show()
-                                                navController.navigate("home") { popUpTo("createprofile") { inclusive = true } }
+                                                navController.navigate("home") {
+                                                    popUpTo("createprofile") { inclusive = true }
+                                                }
                                             }
                                             .addOnFailureListener { e ->
                                                 isLoading = false
                                                 Toast.makeText(context, e.message ?: "Error", Toast.LENGTH_SHORT).show()
                                             }
+
                                     }
                                 } else {
                                     val combinedError = listOfNotNull(
