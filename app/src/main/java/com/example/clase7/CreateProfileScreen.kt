@@ -76,7 +76,6 @@ fun CreateProfileScreen(navController: NavController) {
 
     var isLoading by remember { mutableStateOf(false) }
 
-    // Definir unidades por hábito
     val habitUnits = mapOf(
         stringResource(R.string.habit_sleep) to "Horas",
         stringResource(R.string.habit_exercise) to "Minutos",
@@ -84,7 +83,6 @@ fun CreateProfileScreen(navController: NavController) {
         stringResource(R.string.habit_reading) to "Minutos"
     )
 
-    // Animaciones de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
     val animatedAlpha by animateFloatAsState(if (isVisible) 1f else 0f, tween(800))
@@ -157,7 +155,6 @@ fun CreateProfileScreen(navController: NavController) {
                 ) {
                     Column(modifier = Modifier.padding(24.dp)) {
 
-                        // Nombre
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
@@ -172,7 +169,6 @@ fun CreateProfileScreen(navController: NavController) {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Edad
                         OutlinedTextField(
                             value = age,
                             onValueChange = { age = it },
@@ -187,7 +183,6 @@ fun CreateProfileScreen(navController: NavController) {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Género
                         ExposedDropdownMenuBox(
                             expanded = expandedGender,
                             onExpandedChange = { expandedGender = !expandedGender }
@@ -219,7 +214,6 @@ fun CreateProfileScreen(navController: NavController) {
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // Selección de hábitos
                         Text(
                             text = stringResource(R.string.create_profile_screen_select_habits),
                             fontWeight = FontWeight.Bold,
@@ -289,7 +283,6 @@ fun CreateProfileScreen(navController: NavController) {
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // Botón Continuar
                         Button(
                             onClick = {
                                 val nameValid = validateName(name)
@@ -309,14 +302,13 @@ fun CreateProfileScreen(navController: NavController) {
                                         val convertedDurations: Map<String, String> = habitDurations.map { (habit, value) ->
                                             val number = value.toIntOrNull() ?: 0
                                             val inMinutes = if (habitUnits[habit] == "Horas") number * 60 else number
-                                            habit to inMinutes.toString() // <-- aquí
+                                            habit to inMinutes.toString()
                                         }.toMap()
 
-                                        // Crear estructura de hábitos para Firebase
                                         val habitsMap = convertedDurations.map { (habit, duration) ->
                                             habit to mapOf(
                                                 "first" to habit,
-                                                "second" to duration
+                                                "minutes" to duration
                                             )
                                         }.toMap()
 

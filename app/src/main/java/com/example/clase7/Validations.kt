@@ -20,7 +20,7 @@ fun validatePassword(value: String): Pair<Boolean, Int?> {
     }
 }
 
-// Función combinada opcional para validar email y contraseña juntos
+
 fun validateCredentials(email: String, password: String): Pair<Boolean, List<Int>> {
     val errors = mutableListOf<Int>()
     val emailValidation = validateEmail(email)
@@ -47,7 +47,7 @@ fun validateHabits(selectedHabits: List<String>): Pair<Boolean, Int?> {
 
 fun validateHours(hours: String): Pair<Boolean, Int?> {
     return if (hours.isBlank()) {
-        Pair(false, R.string.create_profile_screen_hours_required) // String que debes agregar
+        Pair(false, R.string.create_profile_screen_hours_required)
     } else {
         val value = hours.toIntOrNull()
         if (value == null || value <= 0) Pair(false, R.string.create_profile_screen_hours_invalid)

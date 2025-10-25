@@ -62,7 +62,6 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
 
     val maxHabits = 4
 
-    // Strings
     val create_max = stringResource(R.string.create_habit_max_limit)
     val create_saved = stringResource(R.string.create_habit_saved)
     val create_min = stringResource(R.string.create_habit_min_limit)
@@ -74,7 +73,6 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
     val error_loading = stringResource(R.string.error_loading_habits)
     val error_saving = stringResource(R.string.error_saving_habits)
 
-    // Lista completa de hábitos posibles (los que aparecen en pantalla)
     val allHabits = listOf(
         stringResource(R.string.habit_sleep),
         stringResource(R.string.habit_study),
@@ -84,10 +82,8 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
         stringResource(R.string.habit_learning),
         stringResource(R.string.habit_journaling),
         stringResource(R.string.habit_coding),
-        stringResource(R.string.habit_drinking_water)
     )
 
-    // 🔹 Cargar hábitos del usuario desde Firebase
     LaunchedEffect(userId) {
         if (userId != null) {
             try {
@@ -97,12 +93,11 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
 
                     val parsedHabits = mutableMapOf<String, String>()
                     habitsMapRaw.forEach { (habitName, values) ->
-                        val duration = values?.get("second")?.toString() ?: "0"
+                        val duration = values?.get("minutes")?.toString() ?: "0"
                         parsedHabits[habitName] = duration
                     }
                     userSavedHabits = parsedHabits
 
-                    // 🔹 Preseleccionar hábitos ya guardados
                     selectedHabits.clear()
                     parsedHabits.forEach { (habit, duration) ->
                         selectedHabits.add(habit)
@@ -244,7 +239,6 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
             durationInputs[it]?.toIntOrNull() != null && (durationInputs[it]?.toInt() ?: 0) > 0
         }
 
-        // 🔹 Guardar cambios en Firebase
         Button(
             onClick = {
                 userId?.let { uid ->
@@ -254,7 +248,7 @@ fun CreateHabitScreen(navController: NavController, userId: String?) {
                         val minutes = if (unit == "h") raw * 60 else raw
                         mapOf(
                             "first" to habit,
-                            "second" to minutes.toString()
+                            "minutes" to minutes.toString()
                         )
                     }
 

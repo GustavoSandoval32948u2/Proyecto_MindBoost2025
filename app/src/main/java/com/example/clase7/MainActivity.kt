@@ -40,6 +40,7 @@ import com.google.firebase.Firebase
 import kotlinx.coroutines.tasks.await
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
@@ -55,14 +56,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔔 Pedir permiso en Android 13+ o programar notificaciones de manera segura
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestNotificationPermission()
         } else {
             scheduleNotificationsSafe()
         }
 
-        // 🧭 Cargar interfaz
         setContent {
             Clase7Theme {
                 Surface(color = MaterialTheme.colorScheme.background) {
@@ -72,7 +71,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // --- Permiso de notificaciones Android 13+ ---
     private fun requestNotificationPermission() {
         when {
             ContextCompat.checkSelfPermission(
@@ -85,7 +83,7 @@ class MainActivity : ComponentActivity() {
             shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
                 Toast.makeText(
                     this,
-                    "Habilita las notificaciones para recibir recordatorios diarios",
+                    getString(R.string.notifications_permission_message),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -96,7 +94,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // --- Resultado de solicitud de permiso ---
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -105,14 +102,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // --- Programar notificaciones de forma segura ---
     private fun scheduleNotificationsSafe() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
             if (alarmManager.canScheduleExactAlarms()) {
                 NotificationUtils.scheduleDailyNotifications(this)
             } else {
-                Log.w("MainActivity", "Exact alarms no permitidas")
+                Log.w("MainActivity", getString(R.string.exact_alarms_not_allowed))
             }
         } else {
             NotificationUtils.scheduleDailyNotifications(this)
@@ -147,7 +143,11 @@ fun MainScreens() {
                     )
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error al cargar usuario: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.error_loading_user, e.message ?: ""),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
@@ -164,7 +164,11 @@ fun MainScreens() {
             }
         } catch (e: Exception) {
             auth.signOut()
-            Toast.makeText(context, e.message ?: "Error", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                e.message ?: context.getString(R.string.default_error),
+                Toast.LENGTH_SHORT
+            ).show()
             "login"
         }
     }
@@ -178,12 +182,14 @@ fun MainScreens() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CircularProgressIndicator(color = Color(0xFF43A047))
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "Iniciando sesión...", fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(R.string.loading_session),
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 
     } else {
-        // --- Navegación principal ---
         NavHost(navController = navController, startDestination = startDestination!!) {
             composable("login") { LoginScreen(navController) }
             composable("register") { RegisterScreen(navController) }
@@ -194,7 +200,6 @@ fun MainScreens() {
                 CreateHabitScreen(navController = navController, userId = userId)
             }
 
-            // 🔹 StatsScreen con currentUser
             composable("stats") {
                 currentUser?.let { user ->
                     StatsScreen(navController = navController, user = user)

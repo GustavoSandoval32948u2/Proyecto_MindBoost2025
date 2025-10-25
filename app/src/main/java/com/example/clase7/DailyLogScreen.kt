@@ -123,7 +123,7 @@ fun DailyLogScreen(
 
                         allHabitsFromFirebase.forEach { habit ->
                             checked[habit] = false
-                            val duration = habitsMapRaw[habit]?.get("second")?.toString() ?: "0"
+                            val duration = habitsMapRaw[habit]?.get("minutes")?.toString() ?: "0"
                             durations[habit] = duration
                         }
                     }
@@ -254,8 +254,8 @@ fun DailyLogScreen(
                                             dataToSave[habit] = done
                                             val enteredDuration = durations[habit]?.toLongOrNull() ?: 0L
                                             val durationInSeconds = when (habit) {
-                                                "Sleep" -> enteredDuration * 3600      // Convertir horas a segundos
-                                                else -> enteredDuration * 60           // Convertir minutos a segundos
+                                                "Sleep" -> enteredDuration * 3600
+                                                else -> enteredDuration * 60
                                             }
                                             dataToSave["${habit}_duration"] = durationInSeconds
                                         }
@@ -284,12 +284,11 @@ fun DailyLogScreen(
                                         AchievementManager.checkAchievements(streakDays = newStreak.toInt())
                                         delay(200)
 
-                                        showSuccessAnimation = true
-                                        showDaily = false
-                                        delay(1500)
+                                        AchievementManager.checkAchievements(streakDays = newStreak.toInt())
                                         navController.navigate("stats") {
                                             popUpTo("dailylog") { inclusive = true }
                                         }
+                                        Toast.makeText(context, toastSaved, Toast.LENGTH_SHORT).show()
 
                                     } catch (e: Exception) {
                                         showErrorToast = true

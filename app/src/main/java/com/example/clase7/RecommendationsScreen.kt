@@ -59,7 +59,6 @@ import data.DeepSeekService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-
 @Composable
 fun RecommendationsScreen(navController: NavController, userId: String?) {
     val db = FirebaseFirestore.getInstance()
@@ -76,7 +75,7 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
     var generalError by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf("") }
 
-    // ---------------- Strings ----------------
+
     val titleRecommendations = stringResource(R.string.recommendations_title)
     val subtitleRecommendations = stringResource(R.string.recommendations_subtitle)
     val noActiveHabits = stringResource(R.string.recommendations_no_active_habits)
@@ -88,6 +87,7 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
     val generalPrompt = stringResource(R.string.recommendations_general_prompt)
     val recomendations_loading = stringResource(R.string.recommendations_loading)
     val loading_error = stringResource(R.string.recommendations_load_error)
+    val recommendationsIconDescription = stringResource(R.string.recommendations_icon_description)
 
     val habitDisplayMap = mapOf(
         "Sleep" to stringResource(R.string.habit_sleep),
@@ -101,13 +101,12 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
         "DrinkingWater" to stringResource(R.string.habit_drinking_water)
     )
 
-    // ---------------- Cargar datos de usuario ----------------
     LaunchedEffect(userId) {
         if (userId != null) {
             try {
                 val userDoc = db.collection("users").document(userId).get().await()
                 if (userDoc.exists()) {
-                    userName = userDoc.getString("name") ?: "Usuario"
+                    userName = userDoc.getString("name") ?: context.getString(R.string.default_user_name)
                     val savedHabitsMapRaw = userDoc.get("habits") as? Map<String, Map<String, Any?>> ?: emptyMap()
                     val savedHabitsTechnical = savedHabitsMapRaw.keys.toList()
                     habits = savedHabitsTechnical.map { habitDisplayMap[it] ?: it }.distinct()
@@ -131,7 +130,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
     val scrollState = rememberScrollState()
 
-    // ---------------- UI Principal ----------------
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -142,7 +140,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 🔹 Icono grande arriba
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -151,7 +148,7 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
             ) {
                 Icon(
                     imageVector = Icons.Default.EmojiObjects,
-                    contentDescription = "Recomendaciones",
+                    contentDescription = recommendationsIconDescription,
                     tint = MindBoostPrimary,
                     modifier = Modifier.size(48.dp)
                 )
@@ -159,7 +156,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔹 Título principal
             Text(
                 text = "🎯 $titleRecommendations",
                 style = MaterialTheme.typography.displayMedium,
@@ -170,7 +166,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 🔹 Subtítulo personalizado con nombre
             Text(
                 text = subtitleRecommendations.replace("%1\$s", userName),
                 style = MaterialTheme.typography.titleLarge,
@@ -181,7 +176,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ---------------- Botones de hábitos ----------------
             if (habits.isEmpty()) {
                 Text(
                     text = noActiveHabits,
@@ -213,7 +207,7 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
                                             notesStr += ". "
                                         }
 
-                                        val durationSec = habitsMap[habit]?.get("second")?.toString() ?: "0"
+                                        val durationSec = habitsMap[habit]?.get("minutes")?.toString() ?: "0"
                                         val durationHours = (durationSec.toIntOrNull() ?: 0) / 3600
 
                                         val prompt = aiPromptTemplate
@@ -222,7 +216,7 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
                                             .replace("{habit}", habit)
                                             .replace("{done}", totalDone.toString())
                                             .replace("{notes}", notesStr)
-                                            .replace("{duration}", "$durationSec segundos ($durationHours horas)")
+                                            .replace("{duration}", "$durationSec minutos ($durationHours horas)")
 
                                         recommendation = DeepSeekService.getRecommendation(prompt)
 
@@ -237,7 +231,12 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp)
                         ) {
-                            Text(text = habit, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(
+                                text = habit,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
                         }
                     }
                 }
@@ -245,7 +244,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ---------------- Card de recomendación individual ----------------
             if (selectedHabit != null) {
                 Card(
                     modifier = Modifier
@@ -274,7 +272,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ---------------- Botón de recomendación general ----------------
             Button(
                 onClick = {
                     generalLoading = true
@@ -305,7 +302,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
                 )
             }
 
-            // ---------------- Card recomendación general ----------------
             if (generalRecommendation.isNotEmpty()) {
                 Card(
                     modifier = Modifier
@@ -334,7 +330,6 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ---------------- Botón volver ----------------
             Button(
                 onClick = { navController.navigate("home") },
                 colors = ButtonDefaults.buttonColors(containerColor = MindBoostPrimary),
@@ -343,7 +338,12 @@ fun RecommendationsScreen(navController: NavController, userId: String?) {
                     .fillMaxWidth()
                     .height(60.dp)
             ) {
-                Text(text = backHome, fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    text = backHome,
+                    fontSize = 20.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 

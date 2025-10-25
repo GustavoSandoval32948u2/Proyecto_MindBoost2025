@@ -41,7 +41,6 @@ fun MedalsScreen(navController: NavController, userId: String?) {
     val medalsAlreadyUnlocked = stringResource(R.string.medals_already_unlocked)
     val medal_locked = stringResource(R.string.medals_locked_msg)
 
-    // --- Lista oficial de logros ---
     val allAchievements = listOf(
         Achievement(
             id = "streak_3",
@@ -66,7 +65,6 @@ fun MedalsScreen(navController: NavController, userId: String?) {
         )
     )
 
-    // --- Inicializa AchievementManager ---
     LaunchedEffect(userId) {
         userId?.let {
             AchievementManager.initialize(allAchievements, it)
@@ -76,7 +74,6 @@ fun MedalsScreen(navController: NavController, userId: String?) {
     val unlocked = AchievementManager.unlocked
     val unlockedCount = unlocked.values.count { it }
 
-    // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
@@ -107,7 +104,7 @@ fun MedalsScreen(navController: NavController, userId: String?) {
                 .scale(scale)
                 .alpha(alpha)
         ) {
-            // --- Encabezado ---
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,7 +135,6 @@ fun MedalsScreen(navController: NavController, userId: String?) {
                 )
             }
 
-            // --- Resumen de logros ---
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -197,7 +193,6 @@ fun MedalsScreen(navController: NavController, userId: String?) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- Grid de medallas ---
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier
@@ -226,7 +221,6 @@ fun MedalsScreen(navController: NavController, userId: String?) {
         }
     }
 
-    // --- Diálogo de logro desbloqueado ---
     var unlockedAchievement by remember { mutableStateOf<Achievement?>(AchievementManager.lastUnlockedAchievement) }
 
     LaunchedEffect(AchievementManager.lastUnlockedAchievement) {

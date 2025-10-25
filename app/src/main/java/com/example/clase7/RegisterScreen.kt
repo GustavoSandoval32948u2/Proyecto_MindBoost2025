@@ -59,7 +59,6 @@ fun RegisterScreen(navController: NavController) {
     var emailError: Int? by remember { mutableStateOf(null) }
     var passwordError: Int? by remember { mutableStateOf(null) }
 
-    // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
@@ -84,6 +83,21 @@ fun RegisterScreen(navController: NavController) {
                 )
             )
     ) {
+
+        IconButton(
+            onClick = { navController.navigate("login") },
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Volver a login",
+                tint = MindBoostPrimary,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
         val scrollState = rememberScrollState()
 
         Column(
@@ -98,7 +112,6 @@ fun RegisterScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Logo y título
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
@@ -154,7 +167,6 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Formulario
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -171,7 +183,6 @@ fun RegisterScreen(navController: NavController) {
                         modifier = Modifier.padding(bottom = 20.dp)
                     )
 
-                    // Email
                     OutlinedTextField(
                         value = stateEmail,
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MindBoostPrimary) },
@@ -195,7 +206,6 @@ fun RegisterScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Password
                     OutlinedTextField(
                         value = statePassword,
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MindBoostPrimary) },
@@ -220,7 +230,6 @@ fun RegisterScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Confirm Password
                     OutlinedTextField(
                         value = stateConfirmPassword,
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MindBoostPrimary) },
@@ -237,7 +246,6 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón Registrar
             Button(
                 onClick = {
                     val emailValid = validateEmail(stateEmail)
@@ -275,7 +283,6 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Frase motivacional
             Text(
                 text = motivationalText,
                 style = MaterialTheme.typography.bodyMedium,

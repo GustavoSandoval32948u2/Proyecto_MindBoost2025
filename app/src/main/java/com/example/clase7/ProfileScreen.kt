@@ -42,7 +42,6 @@ fun ProfileScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val userId = auth.currentUser?.uid
 
-    // 🔹 Variables de estado
     var user by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -54,7 +53,6 @@ fun ProfileScreen(navController: NavController) {
 
     val profile_update = stringResource(R.string.profile_updated)
 
-    // 🔹 Cargar datos del usuario
     LaunchedEffect(Unit) {
         userId?.let { uid ->
             db.collection(USERS_COLLECTION).document(uid).get()
@@ -108,7 +106,6 @@ fun ProfileScreen(navController: NavController) {
                     .padding(bottom = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 🔹 Flecha de regreso y título
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -133,7 +130,6 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔹 Icono principal
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = stringResource(R.string.profile_screen_icon_desc),
@@ -142,7 +138,6 @@ fun ProfileScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔹 Racha
                 user?.let { u ->
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -171,7 +166,6 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 🔹 Edición o visualización de perfil
                 if (isEditing) {
                     OutlinedTextField(
                         value = name,
@@ -287,7 +281,6 @@ fun ProfileScreen(navController: NavController) {
     }
 }
 
-// 🔹 Sección de info
 @Composable
 fun ProfileInfoSection(title: String, items: List<ProfileInfoItem>) {
     Card(
@@ -316,7 +309,6 @@ fun ProfileInfoSection(title: String, items: List<ProfileInfoItem>) {
     }
 }
 
-// 🔹 Fila de info
 @Composable
 fun ProfileInfoRow(item: ProfileInfoItem) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

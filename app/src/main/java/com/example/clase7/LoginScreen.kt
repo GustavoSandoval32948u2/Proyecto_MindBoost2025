@@ -56,7 +56,6 @@ fun LoginScreen(navController: NavController) {
     var emailError: Int? by remember { mutableStateOf(null) }
     var passwordError: Int? by remember { mutableStateOf(null) }
 
-    // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
@@ -95,7 +94,6 @@ fun LoginScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Logo y título
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
@@ -151,7 +149,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Formulario
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -168,7 +165,6 @@ fun LoginScreen(navController: NavController) {
                         modifier = Modifier.padding(bottom = 20.dp)
                     )
 
-                    // Email
                     OutlinedTextField(
                         value = stateEmail,
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MindBoostPrimary) },
@@ -192,7 +188,6 @@ fun LoginScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Password
                     OutlinedTextField(
                         value = statePassword,
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MindBoostPrimary) },
@@ -218,7 +213,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón Iniciar Sesión
             Button(
                 onClick = {
                     val emailValid = validateEmail(stateEmail)
@@ -265,7 +259,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón Registrar
             Button(
                 onClick = { navController.navigate("register") },
                 colors = ButtonDefaults.buttonColors(containerColor = MindBoostPrimary, contentColor = Color.White),
@@ -277,7 +270,6 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Frase motivacional
             Text(
                 text = motivationalText,
                 style = MaterialTheme.typography.bodyMedium,

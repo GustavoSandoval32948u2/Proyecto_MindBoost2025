@@ -17,7 +17,6 @@ object NotificationUtils {
 
     const val CHANNEL_ID = "mindboost_channel"
 
-    // --- Crear canal de notificaciones (Android 8+) ---
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = context.getString(R.string.channel_name)
@@ -32,7 +31,6 @@ object NotificationUtils {
         }
     }
 
-    // --- Programar notificaciones diarias fijas ---
     fun scheduleDailyNotifications(context: Context) {
         val times = listOf(
             Pair(8, 0),   // 08:00 AM
@@ -82,7 +80,7 @@ object NotificationUtils {
         }
     }
 
-    // --- Enviar notificación inmediata (para el botón de prueba) ---
+    // --- Enviar notificación inmediata (Boton) ---
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun sendImmediateNotification(context: Context) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

@@ -19,7 +19,6 @@ class NotificationReceiver : BroadcastReceiver() {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Crear canal si no existe
         val channel = NotificationChannel(
             channelId,
             context.getString(R.string.notification_channel_name),
@@ -30,7 +29,6 @@ class NotificationReceiver : BroadcastReceiver() {
 
         notificationManager.createNotificationChannel(channel)
 
-        // Intent al abrir la app
         val mainIntent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             context,

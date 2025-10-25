@@ -41,7 +41,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
 
-    // Obtener nombre del usuario para saludo (opcional)
     var userName by remember { mutableStateOf("") }
     LaunchedEffect(uid) {
         if (uid != null) {
@@ -62,7 +61,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
                 val userDoc = db.collection("users").document(uid).get().await()
                 val lastDailyDate = userDoc.getString("lastDailyDate")
 
-                // Si el usuario ya hizo o omitió el daily hoy, no redirigir
                 if (lastDailyDate == today) {
                     alreadyCheckedDaily.value = true
                 } else {
@@ -73,7 +71,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
                         .get()
                         .await()
 
-                    // Si no hay log para hoy, abrir Daily Log
                     if (!logDoc.exists()) {
                         alreadyCheckedDaily.value = true
                         navController.navigate("dailylog")
@@ -88,7 +85,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
     }
 
 
-    // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
@@ -121,7 +117,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Título principal
             Text(
                 text = stringResource(R.string.home_title),
                 style = MaterialTheme.typography.displayMedium,
@@ -131,7 +126,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Subtítulo
             Text(
                 text = stringResource(R.string.home_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
@@ -173,7 +167,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sección: Hábitos
             SectionGroup(
                 title = stringResource(R.string.home_section_habits),
                 items = listOf(
@@ -194,7 +187,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sección: Configuración
             SectionGroup(
                 title = stringResource(R.string.home_section_settings),
                 items = listOf(
@@ -215,7 +207,6 @@ fun HomeScreen(navController: NavController, skipDailyRedirect: MutableState<Boo
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Frase motivacional
             Text(
                 text = stringResource(R.string.home_motivation),
                 style = MaterialTheme.typography.bodyMedium,

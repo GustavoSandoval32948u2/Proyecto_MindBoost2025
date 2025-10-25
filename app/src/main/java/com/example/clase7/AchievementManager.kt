@@ -12,20 +12,17 @@ object AchievementManager {
 
     private val firestore = FirebaseFirestore.getInstance()
 
-    // Estado global de logros desbloqueados
+
     val unlocked = mutableStateMapOf<String, Boolean>()
 
-    // Último logro desbloqueado automáticamente
+
     var lastUnlockedAchievement: Achievement? = null
         private set
 
-    // Lista de logros y usuario actual
     private lateinit var achievementsList: List<Achievement>
     private lateinit var currentUserId: String
 
-    /**
-     * Inicializa la lista de logros y carga estado desde Firestore
-     */
+
     fun initialize(achievements: List<Achievement>, userId: String) {
         achievementsList = achievements
         currentUserId = userId
@@ -46,14 +43,11 @@ object AchievementManager {
         }
     }
 
-    /**
-     * Comprueba y actualiza logros según condiciones
-     */
     fun checkAchievements(
         streakDays: Int = 0,
         averageScore: Float = 0f
     ) {
-        // ✅ Asumimos que currentUserId ya está inicializado
+
         CoroutineScope(Dispatchers.IO).launch {
             achievementsList.forEach { ach ->
                 when (ach.id) {
@@ -73,12 +67,10 @@ object AchievementManager {
             .document(ach.id)
 
         if (shouldUnlock && !currentlyUnlocked) {
-            // Desbloquea el logro
             userRef.set(mapOf("unlockedAt" to System.currentTimeMillis())).await()
             unlocked[ach.id] = true
             lastUnlockedAchievement = ach
         } else if (!shouldUnlock && currentlyUnlocked) {
-            // Bloquea el logro si antes estaba desbloqueado
             userRef.delete().await()
             unlocked[ach.id] = false
             if (lastUnlockedAchievement?.id == ach.id) lastUnlockedAchievement = null

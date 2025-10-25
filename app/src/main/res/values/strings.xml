@@ -30,7 +30,6 @@
     <string name="register_screen_slogan">Organiza tus hábitos y potencia tu mente cada día.</string>
 
 
-
     <!-- Fields -->
     <string name="fields_email">Correo electrónico</string>
     <string name="fields_password">Contraseña</string>
@@ -138,7 +137,7 @@
 
 
 
-
+    <!-- Create Habits -->
     <string name="create_habit_title">Registrar Hábitos</string>
     <string name="create_habit_name">Nombre del hábito</string>
     <string name="create_habit_hours">Horas por día</string>
@@ -151,9 +150,6 @@
     <string name="create_habit_error_empty">Debes ingresar un nombre válido</string>
     <string name="create_habit_error_max">No puedes tener más de 4 hábitos</string>
     <string name="create_habit_current_list">Tus hábitos actuales</string>
-    <string name="create_habit_screen_instruction">
-        Elige hasta 5 hábitos que quieras seguir.
-    </string>
     <string name="habit_selected">Seleccionado</string>
     <string name="habit_selection_limit">Has alcanzado el límite de 4 hábitos</string>
     <string name="select_at_least_one_habit">Selecciona al menos un hábito</string>
@@ -208,11 +204,14 @@
     Genera una recomendación concreta, personalizada y práctica para mejorar este hábito, incluyendo sugerencias de horario, ejemplos y cómo integrarlo en la rutina diaria. Usa varias oraciones completas.
     </string>
     <string name="recommendations_general_prompt">
-    Eres un asistente que da consejos generales para mantener hábitos saludables.
+    Eres un asistente que da consejos generales al azar para mantener hábitos saludables.
     Da una recomendación breve pero útil para ser constante, mantener hábitos y mejorar la disciplina.
     </string>
     <string name="recommendations_general_button">Recomendación general</string>
     <string name="recommendations_subtitle">Hola %1$s, estas son tus recomendaciones personalizadas para hoy:</string>
+
+    <string name="default_user_name">Usuario</string>
+    <string name="recommendations_icon_description">Icono de recomendaciones</string>
 
 
     <!-- Medals -->
@@ -244,7 +243,7 @@
     <string name="achv_avg80_title">Promedio 80%</string>
     <string name="achv_avg80_desc">Mantén un promedio de cumplimiento ≥ 80%.</string>
 
-    <!-- Daily Log Extras -->
+    <!-- Daily Log -->
     <string name="dailylog_icon_date">Icono de fecha</string>
     <string name="dailylog_header">Registro diario — %1$s</string>
 
@@ -332,5 +331,12 @@
     <string name="stats_no_stats">No hay estadísticas disponibles</string>
     <string name="stats_start_logging">Comienza a registrar tus hábitos para ver tu progreso</string>
     <string name="stats_motivational">Los números cuentan tu historia de crecimiento 📈</string>
+
+    <!-- MainActivity -->
+    <string name="notifications_permission_message">Habilita las notificaciones para recibir recordatorios diarios</string>
+    <string name="exact_alarms_not_allowed">Las alarmas exactas no están permitidas en este dispositivo</string>
+    <string name="error_loading_user">Error al cargar usuario: %1$s</string>
+    <string name="default_error">Error desconocido</string>
+    <string name="loading_session">Iniciando sesión...</string>
 
 </resources>

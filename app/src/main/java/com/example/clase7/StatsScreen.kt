@@ -50,7 +50,6 @@ fun StatsScreen(navController: NavController, user: User?) {
     var startDate by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Animación de entrada
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
     val scale by animateFloatAsState(targetValue = if (isVisible) 1f else 0.8f, animationSpec = tween(600))
@@ -58,7 +57,6 @@ fun StatsScreen(navController: NavController, user: User?) {
 
     val stats_average = stringResource(R.string.stats_average_label)
 
-    // 🔹 Carga de logs
     LaunchedEffect(uid) {
         uid?.let { userId ->
             try {
@@ -78,7 +76,6 @@ fun StatsScreen(navController: NavController, user: User?) {
         }
     }
 
-    // 🔹 Cálculos protegidos solo con hábitos activos
     val activeHabits = user?.habits?.keys ?: emptySet()
     val totalCompleted = habitLogs.values.sumOf { log -> log.filterKeys { it in activeHabits }.values.count { it } }
     val totalPossible = habitLogs.values.sumOf { log -> log.filterKeys { it in activeHabits }.size }
@@ -118,7 +115,6 @@ fun StatsScreen(navController: NavController, user: User?) {
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Encabezado
                 Row(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = { navController.navigate("home") { popUpTo("stats") { inclusive = true } } },
@@ -130,7 +126,6 @@ fun StatsScreen(navController: NavController, user: User?) {
                     Text(text = stringResource(R.string.stats_title), style = MaterialTheme.typography.headlineLarge, color = MindBoostPrimary, fontWeight = FontWeight.Bold)
                 }
 
-                // Resumen principal
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -153,7 +148,6 @@ fun StatsScreen(navController: NavController, user: User?) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Tarjetas de estadísticas principales
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(title = stringResource(R.string.stats_completed), value = totalCompleted.toString(), icon = Icons.Default.CheckCircle, color = Color(0xFF4CAF50), modifier = Modifier.weight(1f))
                     StatCard(title = stringResource(R.string.stats_possible), value = totalPossible.toString(), icon = Icons.Default.TrackChanges, color = MindBoostPrimary, modifier = Modifier.weight(1f))
@@ -161,7 +155,6 @@ fun StatsScreen(navController: NavController, user: User?) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Promedio diario
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -192,7 +185,6 @@ fun StatsScreen(navController: NavController, user: User?) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Gráfica de barras y leyenda
                 if (activeHabits.isNotEmpty() && habitLogs.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
